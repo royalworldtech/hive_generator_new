@@ -1,1 +1,1 @@
-### Copy of [hive](https://pub.dev/packages/hive_generator/versions) 
+### Copy of [hive_generator](https://pub.dev/packages/hive_generator/versions) 
