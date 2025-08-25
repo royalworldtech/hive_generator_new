@@ -1,10 +1,8 @@
-import 'package:analyzer/dart/element/element.dart';
 import 'package:hive_generator/src/builder.dart';
 import 'package:hive_generator/src/helper.dart';
 
 class EnumBuilder extends Builder {
-  EnumBuilder(InterfaceElement interface, List<AdapterField> getters)
-      : super(interface, getters);
+  EnumBuilder(super.interface, super.getters);
 
   @override
   String buildRead() {

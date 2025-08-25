@@ -1,7 +1,6 @@
 import 'dart:typed_data';
 
 import 'package:analyzer/dart/constant/value.dart';
-import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/nullability_suffix.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:hive/hive.dart';
@@ -13,29 +12,30 @@ import 'type_helper.dart';
 
 class ClassBuilder extends Builder {
   ClassBuilder(
-    InterfaceElement interface,
-    List<AdapterField> getters,
-    List<AdapterField> setters,
-  ) : super(interface, getters, setters);
+    super.interface,
+    super.getters,
+    super.setters,
+  );
 
-  var hiveListChecker = const TypeChecker.fromRuntime(HiveList);
-  var listChecker = const TypeChecker.fromRuntime(List);
-  var mapChecker = const TypeChecker.fromRuntime(Map);
-  var setChecker = const TypeChecker.fromRuntime(Set);
-  var iterableChecker = const TypeChecker.fromRuntime(Iterable);
-  var uint8ListChecker = const TypeChecker.fromRuntime(Uint8List);
+  var hiveListChecker = const TypeChecker.typeNamed(HiveList);
+  var listChecker = const TypeChecker.typeNamed(List);
+  var mapChecker = const TypeChecker.typeNamed(Map);
+  var setChecker = const TypeChecker.typeNamed(Set);
+  var iterableChecker = const TypeChecker.typeNamed(Iterable);
+  var uint8ListChecker = const TypeChecker.typeNamed(Uint8List);
 
   @override
   String buildRead() {
-    var constr =
-        interface.constructors.firstOrNullWhere((it) => it.name.isEmpty);
+    var constr = interface.constructors.firstOrNullWhere(
+      (it) => it.name?.isEmpty ?? false,
+    );
     check(constr != null, 'Provide an unnamed constructor.');
 
     // The remaining fields to initialize.
     var fields = setters.toList();
 
     // Empty classes
-    if (constr!.parameters.isEmpty && fields.isEmpty) {
+    if (constr!.formalParameters.isEmpty && fields.isEmpty) {
       return 'return ${interface.name}();';
     }
 
@@ -49,7 +49,7 @@ class ClassBuilder extends Builder {
     return ${interface.name}(
     ''');
 
-    for (var param in constr.parameters) {
+    for (var param in constr.formalParameters) {
       var field = fields.firstOrNullWhere((it) => it.name == param.name);
       // Final fields
       field ??= getters.firstOrNullWhere((it) => it.name == param.name);
@@ -57,11 +57,9 @@ class ClassBuilder extends Builder {
         if (param.isNamed) {
           code.write('${param.name}: ');
         }
-        code.write(_value(
-          param.type,
-          'fields[${field.index}]',
-          field.defaultValue,
-        ));
+        code.write(
+          _value(param.type, 'fields[${field.index}]', field.defaultValue),
+        );
         code.writeln(',');
         fields.remove(field);
       }
@@ -73,11 +71,9 @@ class ClassBuilder extends Builder {
     // as initializing formals. We do so using cascades.
     for (var field in fields) {
       code.write('..${field.name} = ');
-      code.writeln(_value(
-        field.type,
-        'fields[${field.index}]',
-        field.defaultValue,
-      ));
+      code.writeln(
+        _value(field.type, 'fields[${field.index}]', field.defaultValue),
+      );
     }
 
     code.writeln(';');
@@ -129,7 +125,7 @@ class ClassBuilder extends Builder {
       }
       // The suffix is not needed with nnbd on $cast becauuse it short circuits,
       // otherwise it is needed.
-      var castWithSuffix = isLibraryNNBD(interface) ? '$cast' : '$suffix$cast';
+      var castWithSuffix = isLibraryNNBD(interface) ? cast : '$suffix$cast';
       return '$suffix.map((dynamic e)=> ${_cast(arg, 'e')})$castWithSuffix';
     } else {
       return '$suffix.cast<${_displayString(arg)}>()';
@@ -219,5 +215,5 @@ String _suffixFromType(DartType type) {
 
 String _displayString(DartType e) {
   var suffix = _suffixFromType(e);
-  return '${e.getDisplayString(withNullability: false)}$suffix';
+  return '${e.getDisplayString()}$suffix';
 }
